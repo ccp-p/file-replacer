@@ -1,5 +1,7 @@
 package config
 
+import "runtime"
+
 // ReplaceItem 表示一个替换项
 type ReplaceItem struct {
 	// 查找的字符串
@@ -44,7 +46,7 @@ func NewDefaultConfig() *Config {
 		},
 		Debug:   false,
 		DryRun:  false,
-		Threads: 12,
+		Threads: runtime.NumCPU(), // 使用CPU核心数作为默认线程数
 	}
 }
 

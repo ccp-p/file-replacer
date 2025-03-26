@@ -49,7 +49,7 @@ go build -o file-replacer cmd/file-replacer/main.go
 - `-dry-run`: 预览模式，不进行实际替换 (默认为 false)
 - `-ignore`: 要忽略的目录，用逗号分隔
 - `-debug`: 开启调试模式 (默认为 false)
-- `-threads`: 指定并发处理的线程数量 (默认为 12)
+- `-threads`: 指定并发处理的线程数量 (默认为CPU核心数)
 
 ## 替换对文件格式示例
 
