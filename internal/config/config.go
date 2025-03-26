@@ -14,6 +14,8 @@ type Config struct {
 	Debug bool
 	// 是否进行实际替换（false为仅预览）
 	DryRun bool
+	// 并发线程数
+	Threads int
 }
 
 // NewDefaultConfig 返回默认配置
@@ -24,6 +26,7 @@ func NewDefaultConfig() *Config {
 		SearchString:  "",
 		ReplaceString: "",
 		Debug:         false,
-		DryRun:        true,
+		DryRun:        false,
+		Threads:       12,
 	}
 }
