@@ -30,9 +30,12 @@ type Config struct {
 }
 
 // NewDefaultConfig 返回默认配置
+// "D:\\project\\cx_project\\china_mobile\\gitProject\\qqtgy\\src\\main\\webapp\\res\\wap"
+// D:\project\cx_project\china_mobile\gitProject\bigclass\src\main\webapp\res\wap =》 \\
+//  D:\\project\\cx_project\\china_mobile\\gitProject\\bigclass\\src\\main\\webapp\\res\\wap
 func NewDefaultConfig() *Config {
 	return &Config{
-		RootDir:    "D:\\project\\cx_project\\china_mobile\\gitProject\\qqtgy\\src\\main\\webapp\\res\\wap",
+		RootDir:    "D:\\project\\cx_project\\china_mobile\\gitProject\\bigclass\\src\\main\\webapp\\res\\wap",
 		IgnoreDirs: []string{"activityPages,.git", "node_modules", "vendor", "build", "dist"},
 		ReplaceItems: []ReplaceItem{
 			{
