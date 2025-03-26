@@ -20,6 +20,22 @@ type Replacer struct {
 
 // NewReplacer 创建新的替换器
 func NewReplacer(cfg *config.Config) *Replacer {
+	// 如果有旧版的单个替换项，添加到替换项列表中
+	if cfg.SearchString != "" && cfg.ReplaceString != "" {
+		found := false
+		// 检查是否已存在相同的替换项
+		for _, item := range cfg.ReplaceItems {
+			if item.SearchString == cfg.SearchString && item.ReplaceString == cfg.ReplaceString {
+				found = true
+				break
+			}
+		}
+		// 如果不存在，则添加
+		if !found {
+			cfg.AddReplaceItem(cfg.SearchString, cfg.ReplaceString)
+		}
+	}
+
 	return &Replacer{
 		config:   cfg,
 		replaced: 0,
@@ -29,12 +45,16 @@ func NewReplacer(cfg *config.Config) *Replacer {
 
 // Replace 对指定文件列表执行替换操作
 func (r *Replacer) Replace(files []string) error {
-	if r.config.SearchString == "" {
-		return fmt.Errorf("搜索字符串不能为空")
+	if len(r.config.ReplaceItems) == 0 {
+		return fmt.Errorf("没有指定替换项")
 	}
 
-	logger.Log.Infof("开始替换操作，搜索 '%s' 替换为 '%s'",
-		r.config.SearchString, r.config.ReplaceString)
+	logger.Log.Infof("开始替换操作，共有 %d 个替换项", len(r.config.ReplaceItems))
+	for i, item := range r.config.ReplaceItems {
+		logger.Log.Infof("替换项 #%d: 搜索 '%s' 替换为 '%s'",
+			i+1, item.SearchString, item.ReplaceString)
+	}
+
 	if r.config.DryRun {
 		logger.Log.Info("当前为预览模式，不会进行实际替换")
 	}
@@ -79,30 +99,41 @@ func (r *Replacer) replaceInFile(filePath string) error {
 		return err
 	}
 
-	// 将内容转换为字符串并检查是否包含搜索字符串
 	contentStr := string(content)
-	if !strings.Contains(contentStr, r.config.SearchString) {
-		logger.Log.Debugf("文件 %s 不包含搜索字符串，跳过", filePath)
-		return nil
+	originalContent := contentStr
+	fileProcessed := false
+	totalReplacements := 0
+
+	// 对每个替换项进行处理
+	for _, item := range r.config.ReplaceItems {
+		if !strings.Contains(contentStr, item.SearchString) {
+			continue
+		}
+
+		// 计算替换数量
+		count := strings.Count(contentStr, item.SearchString)
+		if count > 0 {
+			contentStr = strings.ReplaceAll(contentStr, item.SearchString, item.ReplaceString)
+			totalReplacements += count
+			fileProcessed = true
+
+			logger.Log.Infof("文件 %s: 找到 '%s' %d 处匹配", filePath, item.SearchString, count)
+		}
 	}
 
-	// 计算替换数量
-	count := strings.Count(contentStr, r.config.SearchString)
-	atomic.AddInt64(&r.replaced, int64(count))
-	atomic.AddInt64(&r.files, 1)
+	// 如果文件被处理了
+	if fileProcessed {
+		atomic.AddInt64(&r.files, 1)
+		atomic.AddInt64(&r.replaced, int64(totalReplacements))
 
-	// 执行替换
-	newContent := strings.ReplaceAll(contentStr, r.config.SearchString, r.config.ReplaceString)
-
-	logger.Log.Infof("文件 %s: 找到 %d 处匹配", filePath, count)
-
-	// 如果不是预览模式，则写入文件
-	if !r.config.DryRun {
-		err = os.WriteFile(filePath, []byte(newContent), 0644)
-		if err != nil {
-			return err
+		// 如果不是预览模式且内容有变化，则写入文件
+		if !r.config.DryRun && contentStr != originalContent {
+			err = os.WriteFile(filePath, []byte(contentStr), 0644)
+			if err != nil {
+				return err
+			}
+			logger.Log.Infof("已更新文件 %s，共替换 %d 处内容", filePath, totalReplacements)
 		}
-		logger.Log.Infof("已更新文件 %s", filePath)
 	}
 
 	return nil

@@ -1,0 +1,6 @@
+# 这是一个替换对文件示例
+# 格式: 搜索字符串 替换字符串
+
+# 示例替换对
+qqt.cmicrwx.cn qqt.cmicvip.cn
+qqt-res.cmicrwx.cn qqt-res.cmicvip.cn
