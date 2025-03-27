@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	demoNumber := "10" // 默认运行新的简化示例
+	demoNumber := "8" // 默认运行可视化演示
 	if len(os.Args) > 1 {
 		demoNumber = os.Args[1]
 	}
@@ -46,6 +46,9 @@ func main() {
 	case "10":
 		examples.SimpleChannelDemo()
 
+	case "11":
+		examples.EnhancedChannelBlockingDemo()
+
 	default:
 		showHelp()
 	}
@@ -60,8 +63,9 @@ func showHelp() {
 	fmt.Println("5 - 可视化WaitGroup工作原理")
 	fmt.Println("6 - 通道关闭最佳实践")
 	fmt.Println("7 - 无缓冲通道阻塞演示")
-	fmt.Println("8 - 无缓冲通道阻塞可视化")
+	fmt.Println("8 - 无缓冲通道阻塞可视化演示")
 	fmt.Println("9 - 安全的通道操作模式")
 	fmt.Println("10 - 简化版无缓冲通道阻塞演示")
+	fmt.Println("11 - 增强版无缓冲通道阻塞可视化")
 	fmt.Println("\n使用方法: examples <编号>")
 }

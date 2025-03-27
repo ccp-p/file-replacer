@@ -2,9 +2,6 @@ package examples
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
-	"runtime"
 	"strings"
 	"time"
 )
@@ -13,103 +10,149 @@ import (
 func ChannelBlockingVisual() {
 	ch := make(chan string)
 
-	// 定义跨平台清屏函数
-	clear := func() {
-		// 针对不同操作系统使用不同清屏命令
-		var cmd *exec.Cmd
-		if runtime.GOOS == "windows" {
-			cmd = exec.Command("cmd", "/c", "cls")
-		} else {
-			cmd = exec.Command("clear")
-		}
-		cmd.Stdout = os.Stdout
-		_ = cmd.Run()
+	// 格式化时间戳
+	timeNow := func() string {
+		return time.Now().Format("15:04:05.000")
 	}
 
-	// 替代清屏方法 - 如果上面的方法不起作用，使用多行分隔
-	alternateClear := func() {
-		// 打印多行分隔来模拟清屏效果
-		fmt.Println(strings.Repeat("\n", 50))
-		fmt.Println("============================================================")
+	// 绘制分隔线
+	drawLine := func() {
+		fmt.Println(strings.Repeat("=", 60))
 	}
 
-	// 绘制可视化界面
-	draw := func(senderState, receiverState, channelState string) {
-		// 尝试两种方式，至少一种会生效
-		clear()
-		alternateClear()
+	// 绘制状态
+	drawStatus := func(step int, desc string, senderStatus, channelStatus, receiverStatus string) {
+		drawLine()
+		fmt.Printf("步骤 %d: %s [时间: %s]\n\n", step, desc, timeNow())
 
-		fmt.Println("=== 无缓冲通道阻塞可视化演示 ===\n")
+		// 创建状态框
+		fmt.Println("┌────────────发送者────────────┬──────通道──────┬────────────接收者────────────┐")
+		fmt.Printf("│ %-28s│ %-14s│ %-32s│\n", senderStatus, channelStatus, receiverStatus)
+		fmt.Println("└────────────────────────────┴────────────────┴────────────────────────────────┘")
 
-		// 发送者状态框
-		fmt.Println("┌────────────发送者─────────────┐")
-		fmt.Printf("│ 状态: %-23s │\n", senderState)
-		fmt.Println("└──────────────────────────────┘")
-
-		// 通道状态
-		arrowLeft := " "
-		arrowRight := " "
-		if channelState == "sending" {
-			arrowLeft = ">"
+		// 添加可视化箭头
+		var arrow string
+		switch channelStatus {
+		case "发送中...":
+			arrow = "  发送者 =====> [ 通道 ] -----> 接收者  "
+		case "接收中...":
+			arrow = "  发送者 -----> [ 通道 ] <===== 接收者  "
+		case "数据传输中!":
+			arrow = "  发送者 =====> [ 通道 ] <===== 接收者  "
+		default:
+			arrow = "  发送者 -----> [ 通道 ] -----> 接收者  "
 		}
-		if channelState == "receiving" {
-			arrowRight = "<"
-		}
-		if channelState == "transferring" {
-			arrowLeft = ">"
-			arrowRight = "<"
-		}
+		fmt.Println("\n" + arrow + "\n")
 
-		fmt.Println()
-		fmt.Printf("   %s──────────────%s   \n", arrowLeft, arrowRight)
-		fmt.Printf("   │  [通道]   │   \n")
-		fmt.Printf("   %s──────────────%s   \n", arrowLeft, arrowRight)
-		fmt.Println()
-
-		// 接收者状态框
-		fmt.Println("┌────────────接收者─────────────┐")
-		fmt.Printf("│ 状态: %-23s │\n", receiverState)
-		fmt.Println("└──────────────────────────────┘")
-
-		fmt.Println("\n按 Ctrl+C 退出演示")
-		fmt.Println("\n当前时间:", time.Now().Format("15:04:05.000"))
-
-		// 添加一个小延迟，让动画效果更明显
-		time.Sleep(800 * time.Millisecond)
+		time.Sleep(1500 * time.Millisecond) // 让每一步清晰可见
 	}
+
+	// 打印标题
+	fmt.Println("\n\n")
+	fmt.Println(strings.Repeat("*", 80))
+	fmt.Println("                       无缓冲通道阻塞行为可视化演示                      ")
+	fmt.Println(strings.Repeat("*", 80))
+	fmt.Println("\n这个演示将展示无缓冲通道如何导致发送和接收操作阻塞\n")
+	time.Sleep(2 * time.Second)
 
 	// 启动发送者协程
 	go func() {
-		draw("初始化中", "未启动", " ")
+		drawStatus(1, "发送者协程启动", "准备发送数据", "空闲", "未启动")
 		time.Sleep(1 * time.Second)
 
-		draw("准备发送数据", "未启动", " ")
-		time.Sleep(1 * time.Second)
+		drawStatus(2, "发送者尝试发送数据", "执行: ch <- \"数据\"", "空闲", "未启动")
 
-		draw("尝试发送 -> 阻塞!", "未启动", "sending")
+		drawStatus(3, "发送被阻塞!", "⚠️ 阻塞在发送操作", "发送中...", "未启动")
 
 		// 这里会阻塞，直到有人接收
 		ch <- "数据"
 
-		draw("发送成功，继续执行", "已接收数据", "transferring")
+		drawStatus(6, "发送成功完成", "✓ 发送完成，继续执行", "数据传输中!", "✓ 已接收数据")
 		time.Sleep(1 * time.Second)
 
-		draw("任务完成", "处理数据中", " ")
+		drawStatus(7, "发送者完成任务", "任务完成，退出协程", "空闲", "处理数据中")
 	}()
 
 	// 主协程模拟接收者，但故意延迟
-	time.Sleep(3 * time.Second)
-	draw("等待中...(已阻塞)", "启动中", " ")
+	time.Sleep(4 * time.Second) // 给发送者足够时间展示阻塞状态
+
+	drawStatus(4, "接收者准备就绪", "⚠️ 仍在阻塞", "发送中...", "启动，准备接收")
 	time.Sleep(1 * time.Second)
 
-	draw("等待中...(已阻塞)", "准备接收", "receiving")
-	time.Sleep(1 * time.Second)
+	drawStatus(5, "接收者执行接收", "⚠️ 仍在阻塞", "接收中...", "执行: data := <-ch")
 
 	// 接收数据
 	data := <-ch
 
-	draw("发送成功，继续执行", "已接收数据: "+data, "transferring")
-	time.Sleep(2 * time.Second)
+	drawStatus(6, "数据成功传递", "✓ 发送完成，继续执行", "数据传输中!", fmt.Sprintf("✓ 已接收数据: \"%s\"", data))
+
+	drawStatus(8, "演示完成", "已退出", "空闲", "演示结束")
+}
+
+// EnhancedChannelBlockingDemo 增强版的通道阻塞演示，显示多个阶段
+func EnhancedChannelBlockingDemo() {
+	fmt.Println("\n=== 增强版无缓冲通道阻塞演示 ===\n")
+
+	// 创建一个简单的进度条
+	progressBar := func(percent int) string {
+		width := 30
+		complete := width * percent / 100
+		bar := "["
+		for i := 0; i < width; i++ {
+			if i < complete {
+				bar += "="
+			} else {
+				bar += " "
+			}
+		}
+		return bar + fmt.Sprintf("] %d%%", percent)
+	}
+
+	// 记录事件
+	events := []struct {
+		time     string
+		sender   string
+		channel  string
+		receiver string
+	}{
+		{"00:00.000", "启动", "空闲", "启动"},
+		{"00:01.000", "准备发送", "空闲", "等待中"},
+		{"00:02.000", "⚠️ 阻塞在ch<-", "等待接收者", "未准备接收"},
+		{"00:03.000", "⚠️ 阻塞在ch<-", "等待接收者", "未准备接收"},
+		{"00:04.000", "⚠️ 阻塞在ch<-", "等待接收者", "准备接收"},
+		{"00:05.000", "✓ 发送完成", "数据传递", "✓ 接收完成"},
+		{"00:06.000", "继续执行", "空闲", "处理数据"},
+		{"00:07.000", "退出", "空闲", "完成"},
+	}
+
+	// 显示整个过程的时间轴
+	fmt.Println("       时间轴       |       发送者      |      通道      |      接收者       ")
+	fmt.Println("---------------------|-------------------|----------------|------------------")
+
+	for _, e := range events {
+		fmt.Printf(" %-18s | %-17s | %-14s | %-18s\n",
+			e.time, e.sender, e.channel, e.receiver)
+		time.Sleep(1 * time.Second)
+	}
+
+	// 显示阻塞期间的模拟进度
+	fmt.Println("\n\n=== 阻塞期间的详细视图 ===\n")
+	fmt.Println("发送者执行: ch <- \"数据\"")
+
+	// 模拟阻塞等待
+	for i := 0; i <= 100; i += 10 {
+		if i < 80 {
+			fmt.Printf("\r发送者: 等待接收者 %s", progressBar(i))
+		} else {
+			fmt.Printf("\r发送者: 正在发送   %s", progressBar(i))
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	fmt.Println("\n\n发送者: ✓ 发送完成!")
+	fmt.Println("接收者: ✓ 接收完成!")
+
+	fmt.Println("\n演示结束")
 }
 
 // SafeChannelDemo 展示如何安全地处理可能阻塞的通道操作
