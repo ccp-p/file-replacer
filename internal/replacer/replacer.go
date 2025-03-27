@@ -62,7 +62,7 @@ func (r *Replacer) Replace(files []string) error {
 	logger.Log.Infof("使用 %d 个线程进行并行处理", r.config.Threads)
 
 	// 使用有界的并发模型
-	fileChan := make(chan string, len(files))
+	fileChan := make(chan string, len(files)) // 这是一个有缓冲通道
 	for _, file := range files {
 		fileChan <- file
 	}
